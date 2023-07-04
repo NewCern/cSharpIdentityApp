@@ -1,0 +1,50 @@
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddRazorPages();
+
+// Add Authentication Handler. 
+// Implementation for serializing is injected via extension method "AddCookie"
+// "AddCookie" Authentication Handler is configured to take authentication scheme name "MyCookieAuth"
+// "MyCookieAuth" scheme provide a logical grouping for "auth handlers", "identities", and "principle claims" all together
+builder.Services.AddAuthentication("MyCookieAuth").AddCookie("MyCookieAuth", options =>
+{
+    options.Cookie.Name = "MyCookieAuth";
+    options.LoginPath = "/Account/Login";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+});
+
+builder.Services.AddAuthorization(options => {
+    options.AddPolicy("AdminOnly", policy => policy.RequireClaim("Admin"));
+    options.AddPolicy("MustBelongToHRDepartment", policy => policy.RequireClaim("Department", "HR"));
+    options.AddPolicy("HRManagerOnly", policy => policy.RequireClaim("Department", "HR").RequireClaim("Manager"));
+
+});
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseRouting();
+
+//This is Line is also added for Authentication
+//This is middleware
+app.UseAuthentication();
+app.UseAuthorization();
+
+//app.UseEndpoints(endpoints => { 
+//    endpoints.MapRazorPages(); 
+//});
+
+app.MapRazorPages();
+
+app.Run();
